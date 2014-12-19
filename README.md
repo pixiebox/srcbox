@@ -1,5 +1,5 @@
 #srcBox
-### basic lightweight slider
+### responsive images
 
 SrcBox is a plugin for images to respond on the viewport-width and includes lazy loading
 
