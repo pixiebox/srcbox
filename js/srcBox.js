@@ -252,7 +252,6 @@ Object.defineProperty(Object.prototype, "srcBox", {
 					  , elBreakpointVal = 'minDevicePixelRatio' in elBreakpoint
 							? elBreakpoint.maxWidth
 							: (elBreakpoint.folder - 0);
-
 					setBreakpoint(el, elBreakpointVal);
 				}
 			}
@@ -280,8 +279,24 @@ Object.defineProperty(Object.prototype, "srcBox", {
 				// cancel bubbling up for performance
 				e.cancelBubble = true;
 				if (e.stopPropagation) e.stopPropagation();
-				if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(e.target.className)) {
-					setImage(e.target);
+
+				var target;
+
+				if (e.target.nodeName === 'IMG') {
+					target = e.target;
+				} else if (e.target.querySelector) {
+					target = e.target.querySelector('img');
+				} else {
+					return;
+				}
+
+				if (target
+				&& new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(target.className)) {
+					setImage(target);
+
+					if ('onNewNode' in settings) {
+						settings.onNewNode();
+					}
 				}
 			}
 		  , supportsOrientationChange = 'ontouchstart' in window
@@ -305,8 +320,8 @@ Object.defineProperty(Object.prototype, "srcBox", {
 		addEvent(orientationEvent, window, debounce(function () {
 			setImages(self);
 		}, 250));
-		addEvent('DOMNodeInserted', document, function (e) {
-			waitForNew(e);
+		addEvent('load', window, function () {
+			addEvent('DOMNodeInserted', document, waitForNew);
 		});
 	}
   , enumerable : false
