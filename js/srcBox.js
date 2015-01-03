@@ -175,9 +175,9 @@
 			var fold = (window.innerHeight
 					? window.innerHeight
 					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
-				) + scrollPos()[0];
+				) + srcBox.scrollPos()[0];
 
-			return fold <= offset(element, 'top');
+			return fold <= srcBox.offset(element, 'top');
 		}
 	  , rightoffold : function rightoffold (element) {
 			var fold = (window.innerWidth
