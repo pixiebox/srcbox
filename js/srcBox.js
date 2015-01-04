@@ -175,9 +175,9 @@
 			var fold = (window.innerHeight
 					? window.innerHeight
 					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
-				) + srcBox.scrollPos()[0];
+				) + scrollPos()[0];
 
-			return fold <= srcBox.offset(element, 'top');
+			return fold <= offset(element, 'top');
 		}
 	  , rightoffold : function rightoffold (element) {
 			var fold = (window.innerWidth
@@ -285,7 +285,7 @@
 		}
 	};
 
-	Object.defineProperty(Object.prototype, "srcBox", { 
+	Object.defineProperty(Object.prototype, "srcBox", {
 		value: function (options) {
 			//
 			// Variables
@@ -314,13 +314,20 @@
 					? srcBox.extend(defaults, options)
 					: defaults
 			  , numberOfRemainingImages
-			  , onNewNode = function onNewNode() {
+			  , onNewNode = function onNewNode () {
 					numberOfRemainingImages--;
 					if (!numberOfRemainingImages) {
 						settings.onNewNode();
 					}
 					srcBox.removeEvent('load', this, onNewNode);
-			};
+			    }
+			  , onComplete = function onComplete () {
+					numberOfRemainingImages--;
+					if (!numberOfRemainingImages) {
+						settings.onComplete();
+					}
+					srcBox.removeEvent('load', this, onComplete);
+			    };
 			
 			//
 			// Initialize
@@ -356,6 +363,20 @@
 
 					srcBox.addEvent('DOMNodeInserted', document, srcBox.waitForNew);
 				});
+			}
+			
+			if ('onComplete' in settings) {
+				numberOfRemainingImages = self.length;
+
+				if (numberOfRemainingImages) {
+					srcBox.forEach(self, function(value, prop) {
+						if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(self[prop].className)) {
+							srcBox.setImage(self[prop], settings);
+
+							srcBox.addEvent('load', self[prop], onComplete);
+						}
+					});
+				}
 			}
 		}
 	  , enumerable : false
