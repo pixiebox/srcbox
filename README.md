@@ -3,7 +3,7 @@
 
 SrcBox is a plugin for images to respond on the viewport-width and includes lazy loading
 
-* modern browsers and IE9+
+* modern browsers and IE8+
 * no jQuery needed
 
 ### Support
