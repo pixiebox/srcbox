@@ -373,7 +373,12 @@
 						if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(self[prop].className)) {
 							srcBox.setImage(self[prop], settings);
 
-							srcBox.addEvent('load', self[prop], onComplete);
+							if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(self[prop].className)) {
+								srcBox.addEvent('load', self[prop], onComplete);
+							} else {
+								numberOfRemainingImages--;
+								if (!numberOfRemainingImages) settings.onComplete();
+							}
 						}
 					});
 				}
