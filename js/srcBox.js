@@ -111,7 +111,7 @@
 			if (!dataBreakpoint || !dataImg) throw new Error('srcBox.js [function setBreakpoint]: The provided elements are missing a data-breakpoint or data-img attribute: <img data-breakpoint="/path/to/folder/{breakpoint}" data-img="some-img.jpg" />');
 
 			src = dataBreakpoint
-					.replace('{breakpoint-name}', breakpoint)
+					.replace('{folder}', breakpoint)
 				+ el.getAttribute('data-img');
 			isLazy = new RegExp("(^|\\s)lag(\\s|$)").test(el.className);
 
