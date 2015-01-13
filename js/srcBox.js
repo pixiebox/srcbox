@@ -1,5 +1,13 @@
-;(function () {
-	var srcBox = {
+;(function (root, factory) {
+    if ( typeof define === 'function' && define.amd ) {
+        define(factory);
+    } else if ( typeof exports === 'object' ) {
+        module.exports = factory;
+    } else {
+        root.srcBox = factory(root);
+    }
+})(this, function (root) {
+	var api = {
 		newItems : []
 	  , devicePixelRatio : function () {
 			return 'devicePixelRatio' in window
@@ -30,11 +38,11 @@
 	  , extend : function ( defaults, options ) {
 			var extended = {};
 
-			srcBox.forEach(defaults, function (value, prop) {
+			api.forEach(defaults, function (value, prop) {
 				extended[prop] = defaults[prop];
 			});
 
-			srcBox.forEach(options, function (value, prop) {
+			api.forEach(options, function (value, prop) {
 				extended[prop] = options[prop];
 			});
 
@@ -89,7 +97,7 @@
 					if (minWidth && maxWidth  && vWidth >= minWidth && vWidth <= maxWidth ||
 						minWidth && !maxWidth && vWidth >= minWidth ||
 						maxWidth && !minWidth && vWidth <= maxWidth) {
-						if (!minDpr || minDpr && srcBox.devicePixelRatio() >= minDpr) {
+						if (!minDpr || minDpr && api.devicePixelRatio() >= minDpr) {
 							breakpoint = _breakpoint;
 						}
 					}
@@ -119,7 +127,7 @@
 
 			if (isLazy) {
 				el.setAttribute('data-lag-src', src);
-				srcBox.lazyElems.push(el);
+				api.lazyElems.push(el);
 			} else {
 				el.src = src;
 				el.removeAttribute('height'); // IE(9) fix
@@ -177,40 +185,40 @@
 			var fold = (window.innerHeight
 					? window.innerHeight
 					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
-				) + srcBox.scrollPos()[0];
+				) + api.scrollPos()[0];
 
-			return fold <= srcBox.offset(element, 'top');
+			return fold <= api.offset(element, 'top');
 		}
 	  , rightoffold : function rightoffold (element) {
 			var fold = (window.innerWidth
 					? window.innerWidth
 					: Math.max(document.documentElement.clientWidth, document.body.clientWidth)
-				) + srcBox.scrollPos()[1];
+				) + api.scrollPos()[1];
 
-			return fold <= srcBox.offset(element, 'left');
+			return fold <= api.offset(element, 'left');
 		}
 	  , abovethetop : function abovethetop (element) {
-			return srcBox.scrollPos()[0] >= srcBox.offset(element, 'top') + element.height;
+			return api.scrollPos()[0] >= api.offset(element, 'top') + element.height;
 		}
 	  , leftofbegin : function leftofbegin (element) {
-			return srcBox.scrollPos()[1] >= srcBox.offset(element, 'left') + element.width;
+			return api.scrollPos()[1] >= api.offset(element, 'left') + element.width;
 		}
 	  , inviewport : function inviewport (element) {
-			return !srcBox.rightoffold(element) && !srcBox.leftofbegin(element) &&
-				!srcBox.belowthefold(element) && !srcBox.abovethetop(element);
+			return !api.rightoffold(element) && !api.leftofbegin(element) &&
+				!api.belowthefold(element) && !api.abovethetop(element);
 		}
 	  , setLazySrc : function setLazySrc () {
-			var lazyElemsLength = srcBox.lazyElems.length;
+			var lazyElemsLength = api.lazyElems.length;
 
 			while (lazyElemsLength--) {
-				if (srcBox.inviewport(srcBox.lazyElems[lazyElemsLength])) {
-					srcBox.lazyElems[lazyElemsLength].src = srcBox.lazyElems[lazyElemsLength].getAttribute('data-lag-src');
-					srcBox.lazyElems[lazyElemsLength].removeAttribute('height'); // IE(9) fix
-					srcBox.lazyElems.splice(lazyElemsLength, 1);
+				if (api.inviewport(api.lazyElems[lazyElemsLength])) {
+					api.lazyElems[lazyElemsLength].src = api.lazyElems[lazyElemsLength].getAttribute('data-lag-src');
+					api.lazyElems[lazyElemsLength].removeAttribute('height'); // IE(9) fix
+					api.lazyElems.splice(lazyElemsLength, 1);
 				}
 			}
-			if (!srcBox.lazyElems.length) {
-				srcBox.removeEvent('scroll', window, srcBox.setLazySrc);
+			if (!api.lazyElems.length) {
+				api.removeEvent('scroll', window, api.setLazySrc);
 			}
 		}
 		// underscore debounce function
@@ -231,31 +239,28 @@
 		}
 	  , setImage : function setImage(el, settings) {
 			if (el.nodeName === 'IMG') {
-				var elBreakpoint = srcBox.getBreakpoint(settings.breakpoints, el.parentNode.offsetWidth)
+				var elBreakpoint = api.getBreakpoint(settings.breakpoints, el.parentNode.offsetWidth)
 				  , elBreakpointVal = 'minDevicePixelRatio' in elBreakpoint
 						? elBreakpoint.maxWidth
 						: (elBreakpoint.folder - 0);
-				srcBox.setBreakpoint(el, elBreakpointVal);
+				api.setBreakpoint(el, elBreakpointVal);
 			}
 		}
 	  , setImages : function setImages (nodes, settings) {
-			viewPortWidth = srcBox.getViewportWidthInCssPixels();
-			breakpoint = srcBox.getBreakpoint(settings.breakpoints, viewPortWidth);
+			viewPortWidth = api.getViewportWidthInCssPixels();
+			breakpoint = api.getBreakpoint(settings.breakpoints, viewPortWidth);
 			breakpointVal = 'minDevicePixelRatio' in breakpoint
 				? breakpoint.maxWidth
 				: (breakpoint.folder - 0);
 
-			if (srcBox.currentBreakpoint !== breakpointVal) {
-				srcBox.currentBreakpoint = breakpointVal;
+			if (api.currentBreakpoint !== breakpointVal) {
+				api.currentBreakpoint = breakpointVal;
 
-				if (nodes.constructor === NodeList) {
-					srcBox.forEach(nodes, function(value, prop) {
-						srcBox.setImage(nodes[prop], settings);
-					});
-				} else {
-					srcBox.setImage(nodes,settings);
-				}
-				srcBox.addEvent('scroll', window, srcBox.setLazySrc);
+				api.forEach(nodes, function(value, prop) {
+					api.setImage(nodes[prop], settings);
+				});
+
+				api.addEvent('scroll', window, api.setLazySrc);
 			}
 		}
 	  , waitForNew : function waitForNew (e) {
@@ -267,11 +272,11 @@
 
 			if (e.target.nodeName === 'IMG') {
 				target = e.target;
-				srcBox.newItems.push(target);
+				api.newItems.push(target);
 			} else if (e.target.querySelector) {
 				target = e.target.querySelectorAll('img');
-				srcBox.forEach(target, function (value, prop) {
-					srcBox.newItems.push(target[prop]);
+				api.forEach(target, function (value, prop) {
+					api.newItems.push(target[prop]);
 				});
 			} else {
 				return;
@@ -285,107 +290,104 @@
 				? 'orientationchange'
 				: 'resize';
 		}
-	};
-
-	Object.defineProperty(Object.prototype, "srcBox", {
-		value: function (options) {
-			//
-			// Variables
-			//
-			var self = this
-			  , settings = {}
-			  // Default settings
-			  , defaults = {
-					breakpoints: [
-						// desktop
-						{folder: '480', maxWidth: 480}
-					  , {folder: '640', minWidth: 481, maxWidth: 767}
-					  , {folder: '900', minWidth: 768, maxWidth: 900}
-					  , {folder: '1170', minWidth: 992}
-						// tablet
-					  , {folder: '900', minWidth: 748, maxWidth: 1024}
-						// Retina
-					  , {folder: '640', maxWidth: 320, minDevicePixelRatio: 2} // iPhone 4 Retina display
-					  , {folder: '900', minWidth: 320, maxWidth: 667, minDevicePixelRatio: 2} // iPhone 5 /6 Retina display
-					  , {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
-					  , {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
-					]
+	}
+  , srcBox = function (selector, options) {
+		//
+		// Variables
+		//
+		var elements = document.querySelectorAll(selector)
+		  // Default settings
+		  , defaults = {
+				breakpoints: [
+					// desktop
+					{folder: '480', maxWidth: 480}
+				  , {folder: '640', minWidth: 481, maxWidth: 767}
+				  , {folder: '900', minWidth: 768, maxWidth: 900}
+				  , {folder: '1170', minWidth: 992}
+					// tablet
+				  , {folder: '900', minWidth: 748, maxWidth: 1024}
+					// Retina
+				  , {folder: '640', maxWidth: 320, minDevicePixelRatio: 2} // iPhone 4 Retina display
+				  , {folder: '900', minWidth: 320, maxWidth: 667, minDevicePixelRatio: 2} // iPhone 5 /6 Retina display
+				  , {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
+				  , {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
+				]
+			}
+		  
+		  , settings = typeof options === 'object'
+				? api.extend(defaults, options)
+				: defaults
+		  , numberOfRemainingImages
+		  , onNewNode = function onNewNode () {
+				numberOfRemainingImages--;
+				if (!numberOfRemainingImages) {
+					settings.onNewNode();
 				}
-			  
-			  , settings = typeof options === 'object'
-					? srcBox.extend(defaults, options)
-					: defaults
-			  , numberOfRemainingImages
-			  , onNewNode = function onNewNode () {
-					numberOfRemainingImages--;
-					if (!numberOfRemainingImages) {
-						settings.onNewNode();
+				api.removeEvent('load', elements, onNewNode);
+			}
+		  , onComplete = function onComplete () {
+				numberOfRemainingImages--;
+				if (!numberOfRemainingImages) {
+					settings.onComplete();
+				}
+				api.removeEvent('load', elements, onComplete);
+			};
+		
+		//
+		// Initialize
+		//
+		api.setImages(elements, settings);
+		api.setLazySrc();
+
+		//
+		// Events
+		//
+		api.addEvent('scroll', window, api.setLazySrc);
+		api.addEvent(api.orientationEvent, window, api.debounce(function () {
+			api.setImages(elements, settings);
+		}, 250));
+
+		if ('onNewNode' in settings) {
+			api.addEvent('load', window, function () {
+				api.addEvent('DOMNodeInserted', document, api.debounce(function () {
+					numberOfRemainingImages = api.newItems.length;
+
+					if (api.newItems.length) {
+						api.forEach(api.newItems, function(value, prop) {
+							if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(api.newItems[prop].className)) {
+								api.setImage(api.newItems[prop], settings);
+
+								api.addEvent('load', api.newItems[prop], onNewNode);
+							}
+						});
+
+						api.newItems.splice(0, api.newItems.length);
 					}
-					srcBox.removeEvent('load', this, onNewNode);
-			    }
-			  , onComplete = function onComplete () {
-					numberOfRemainingImages--;
-					if (!numberOfRemainingImages) {
-						settings.onComplete();
-					}
-					srcBox.removeEvent('load', this, onComplete);
-			    };
-			
-			//
-			// Initialize
-			//
-			srcBox.setImages(this, settings);
-			srcBox.setLazySrc();
+				}, 250));
 
-			//
-			// Events
-			//
-			srcBox.addEvent('scroll', window, srcBox.setLazySrc);
-			srcBox.addEvent(srcBox.orientationEvent, window, srcBox.debounce(function () {
-				srcBox.setImages(self, settings);
-			}, 250));
+				api.addEvent('DOMNodeInserted', document, api.waitForNew);
+			});
+		}
+		
+		if ('onComplete' in settings) {
+			numberOfRemainingImages = elements.length;
 
-			if ('onNewNode' in settings) {
-				srcBox.addEvent('load', window, function () {
-					srcBox.addEvent('DOMNodeInserted', document, srcBox.debounce(function () {
-						numberOfRemainingImages = srcBox.newItems.length;
+			if (numberOfRemainingImages) {
+				api.forEach(elements, function(value, prop) {
+					if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(elements[prop].className)) {
+						api.setImage(elements[prop], settings);
 
-						if (srcBox.newItems.length) {
-							srcBox.forEach(srcBox.newItems, function(value, prop) {
-								if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(srcBox.newItems[prop].className)) {
-									srcBox.setImage(srcBox.newItems[prop], settings);
-
-									srcBox.addEvent('load', srcBox.newItems[prop], onNewNode);
-								}
-							});
-
-							srcBox.newItems.splice(0, srcBox.newItems.length);
+						if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
+							api.addEvent('load', elements[prop], onComplete);
+						} else {
+							numberOfRemainingImages--;
+							if (!numberOfRemainingImages) settings.onComplete();
 						}
-					}, 250));
-
-					srcBox.addEvent('DOMNodeInserted', document, srcBox.waitForNew);
+					}
 				});
 			}
-			
-			if ('onComplete' in settings) {
-				numberOfRemainingImages = self.length;
-
-				if (numberOfRemainingImages) {
-					srcBox.forEach(self, function(value, prop) {
-						if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(self[prop].className)) {
-							srcBox.setImage(self[prop], settings);
-
-							if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(self[prop].className)) {
-								srcBox.addEvent('load', self[prop], onComplete);
-							} else {
-								numberOfRemainingImages--;
-								if (!numberOfRemainingImages) settings.onComplete();
-							}
-						}
-					});
-				}
-			}
 		}
-	  , enumerable : false
-	});
-})();
+	};
+
+	return srcBox;
+});
