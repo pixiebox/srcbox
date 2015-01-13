@@ -2,7 +2,9 @@
 	var srcBox = {
 		newItems : []
 	  , devicePixelRatio : function () {
-			return window.devicePixelRatio || 1
+			return 'devicePixelRatio' in window
+				? window.devicePixelRatio
+				: 1
 		}
 	  , lazyElems : []
 	  , breakpoint : 0
@@ -87,7 +89,7 @@
 					if (minWidth && maxWidth  && vWidth >= minWidth && vWidth <= maxWidth ||
 						minWidth && !maxWidth && vWidth >= minWidth ||
 						maxWidth && !minWidth && vWidth <= maxWidth) {
-						if (!minDpr || minDpr && devicePixelRatio >= minDpr) {
+						if (!minDpr || minDpr && srcBox.devicePixelRatio() >= minDpr) {
 							breakpoint = _breakpoint;
 						}
 					}
