@@ -242,7 +242,7 @@
 				var elBreakpoint = api.getBreakpoint(settings.breakpoints, el.parentNode.offsetWidth)
 				  , elBreakpointVal = 'minDevicePixelRatio' in elBreakpoint
 						? elBreakpoint.maxWidth
-						: (elBreakpoint.folder - 0);
+						: elBreakpoint.folder;
 				api.setBreakpoint(el, elBreakpointVal);
 			}
 		}
@@ -314,8 +314,10 @@
 				]
 			}
 		  
-		  , settings = typeof options === 'object'
-				? api.extend(defaults, options)
+		  , settings = typeof options === 'object' && 'breakpoints' in options
+				? 'extend' in options && options.extend === true
+					? api.extend(defaults, options)
+					: options
 				: defaults
 		  , numberOfRemainingImages
 		  , onNewNode = function onNewNode () {
@@ -323,14 +325,14 @@
 				if (!numberOfRemainingImages) {
 					settings.onNewNode();
 				}
-				api.removeEvent('load', elements, onNewNode);
+				api.removeEvent('load', this, onNewNode);
 			}
 		  , onComplete = function onComplete () {
 				numberOfRemainingImages--;
 				if (!numberOfRemainingImages) {
 					settings.onComplete();
 				}
-				api.removeEvent('load', elements, onComplete);
+				api.removeEvent('load', this, onComplete);
 			};
 		
 		//
@@ -374,15 +376,13 @@
 
 			if (numberOfRemainingImages) {
 				api.forEach(elements, function(value, prop) {
-					if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(elements[prop].className)) {
-						api.setImage(elements[prop], settings);
+					api.setImage(elements[prop], settings);
 
-						if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
-							api.addEvent('load', elements[prop], onComplete);
-						} else {
-							numberOfRemainingImages--;
-							if (!numberOfRemainingImages) settings.onComplete();
-						}
+					if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
+						api.addEvent('load', elements[prop], onComplete);
+					} else {
+						numberOfRemainingImages--;
+						if (!numberOfRemainingImages) settings.onComplete();
 					}
 				});
 			}
