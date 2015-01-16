@@ -8,7 +8,8 @@
     }
 })(this, function (root) {
 	var api = {
-		newItems : []
+		mergedElements : []
+	  , selector : ''
 	  , devicePixelRatio : function () {
 			return 'devicePixelRatio' in window
 				? window.devicePixelRatio
@@ -151,6 +152,18 @@
 				el.splice(evnt, 1);
 			}
 		}
+	  , removeClass : function removeClass(el, remove) {
+			var newClassName = ''
+			  , i
+			  , classes = el.className.split(' ');
+
+			for(i = 0; i < classes.length; i++) {
+				if (classes[i] !== remove) {
+					newClassName += classes[i] +  ' ';
+				}
+			}
+			el.className = newClassName;
+		}
 	  , scrollPos : function scrollPos () {
 			var scrollTop = (window.pageYOffset !== undefined)
 				? window.pageYOffset
@@ -251,9 +264,9 @@
 			breakpoint = api.getBreakpoint(settings.breakpoints, viewPortWidth);
 			breakpointVal = 'minDevicePixelRatio' in breakpoint
 				? breakpoint.maxWidth
-				: (breakpoint.folder - 0);
+				: breakpoint.folder;
 
-			if (api.currentBreakpoint !== breakpointVal) {
+			if (api.currentBreakpoint != breakpointVal) {
 				api.currentBreakpoint = breakpointVal;
 
 				api.forEach(nodes, function(value, prop) {
@@ -261,25 +274,6 @@
 				});
 
 				api.addEvent('scroll', window, api.setLazySrc);
-			}
-		}
-	  , waitForNew : function waitForNew (e) {
-			// cancel bubbling up for performance
-			e.cancelBubble = true;
-			if (e.stopPropagation) e.stopPropagation();
-			
-			var target;
-
-			if (e.target.nodeName === 'IMG') {
-				target = e.target;
-				api.newItems.push(target);
-			} else if (e.target.querySelector) {
-				target = e.target.querySelectorAll('img');
-				api.forEach(target, function (value, prop) {
-					api.newItems.push(target[prop]);
-				});
-			} else {
-				return;
 			}
 		}
 	  , supportsOrientationChange : function () {
@@ -291,101 +285,129 @@
 				: 'resize';
 		}
 	}
-  , srcBox = function (selector, options) {
-		//
-		// Variables
-		//
-		var elements = document.querySelectorAll(selector)
-		  // Default settings
-		  , defaults = {
-				breakpoints: [
-					// desktop
-					{folder: '480', maxWidth: 480}
-				  , {folder: '640', minWidth: 481, maxWidth: 767}
-				  , {folder: '900', minWidth: 768, maxWidth: 900}
-				  , {folder: '1170', minWidth: 992}
-					// tablet
-				  , {folder: '900', minWidth: 748, maxWidth: 1024}
-					// Retina
-				  , {folder: '640', maxWidth: 320, minDevicePixelRatio: 2} // iPhone 4 Retina display
-				  , {folder: '900', minWidth: 320, maxWidth: 667, minDevicePixelRatio: 2} // iPhone 5 /6 Retina display
-				  , {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
-				  , {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
-				]
-			}
-		  
-		  , settings = typeof options === 'object' && 'breakpoints' in options
-				? 'extend' in options && options.extend === true
-					? api.extend(defaults, options)
-					: options
-				: defaults
-		  , numberOfRemainingImages
-		  , onNewNode = function onNewNode () {
-				numberOfRemainingImages--;
-				if (!numberOfRemainingImages) {
-					settings.onNewNode();
-				}
-				api.removeEvent('load', this, onNewNode);
-			}
-		  , onComplete = function onComplete () {
-				numberOfRemainingImages--;
-				if (!numberOfRemainingImages) {
-					settings.onComplete();
-				}
-				api.removeEvent('load', this, onComplete);
-			};
-		
-		//
-		// Initialize
-		//
-		api.setImages(elements, settings);
-		api.setLazySrc();
-
-		//
-		// Events
-		//
-		api.addEvent('scroll', window, api.setLazySrc);
-		api.addEvent(api.orientationEvent, window, api.debounce(function () {
-			api.setImages(elements, settings);
-		}, 250));
-
-		if ('onNewNode' in settings) {
-			api.addEvent('load', window, function () {
-				api.addEvent('DOMNodeInserted', document, api.debounce(function () {
-					numberOfRemainingImages = api.newItems.length;
-
-					if (api.newItems.length) {
-						api.forEach(api.newItems, function(value, prop) {
-							if (new RegExp('[\w\s]*(srcbox)+[\w\s]*').test(api.newItems[prop].className)) {
-								api.setImage(api.newItems[prop], settings);
-
-								api.addEvent('load', api.newItems[prop], onNewNode);
-							}
-						});
-
-						api.newItems.splice(0, api.newItems.length);
-					}
-				}, 250));
-
-				api.addEvent('DOMNodeInserted', document, api.waitForNew);
-			});
-		}
-		
-		if ('onComplete' in settings) {
-			numberOfRemainingImages = elements.length;
-
-			if (numberOfRemainingImages) {
-				api.forEach(elements, function(value, prop) {
-					api.setImage(elements[prop], settings);
-
-					if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
-						api.addEvent('load', elements[prop], onComplete);
+  , srcBox = {
+		init : function (selector, options) {
+			//
+			// ie8 Fix
+			//
+			if (document.all && !document.addEventListener) {
+				var _slice = Array.prototype.slice;
+				Array.prototype.slice = function() {
+					if(this instanceof Array) {
+						return _slice.apply(this, arguments);
 					} else {
-						numberOfRemainingImages--;
-						if (!numberOfRemainingImages) settings.onComplete();
+						var result = []
+						  , start = (arguments.length >= 1) ? arguments[0] : 0
+						  , end = (arguments.length >= 2) ? arguments[1] : this.length;
+
+						for (var i = start; i < end; i++) {
+							result.push(this[i]);
+						}
+						return result;
 					}
-				});
+				};
 			}
+
+			//
+			// Variables
+			//
+			var elements = Array.prototype.slice.call(document.querySelectorAll(selector))
+			  // Default settings
+			  , defaults = {
+					breakpoints: [
+						// desktop
+						{folder: '480', maxWidth: 480}
+					  , {folder: '640', minWidth: 481, maxWidth: 767}
+					  , {folder: '900', minWidth: 768, maxWidth: 900}
+					  , {folder: '1170', minWidth: 992}
+						// tablet
+					  , {folder: '900', minWidth: 748, maxWidth: 1024}
+						// Retina
+					  , {folder: '640', maxWidth: 320, minDevicePixelRatio: 2} // iPhone 4 Retina display
+					  , {folder: '900', minWidth: 320, maxWidth: 667, minDevicePixelRatio: 2} // iPhone 5 /6 Retina display
+					  , {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
+					  , {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
+					]
+				}
+			  , settings = typeof options === 'object' && 'breakpoints' in options
+					? 'extend' in options && options.extend === true
+						? api.extend(defaults, options)
+						: options
+					: api.extend(defaults, options)
+			  , numberOfRemainingImages
+			  , onComplete = function onComplete () {
+					numberOfRemainingImages--;
+					if (!numberOfRemainingImages) {
+						settings.onComplete();
+					}
+					//api.removeEvent('load', this, onComplete);
+				};
+			
+			//
+			// Initialize
+			//
+			api.selector = selector;
+			api.mergedElements = api.mergedElements.concat(elements);
+			api.setImages(elements, settings);
+			api.setLazySrc();
+
+			//
+			// Events
+			//
+			api.addEvent('scroll', window, api.setLazySrc);
+			api.addEvent(api.orientationEvent, window, api.debounce(function () {
+				api.setImages(api.mergedElements, settings);
+			}, 250));
+
+			if ('onComplete' in settings) {
+				numberOfRemainingImages = elements.length;
+
+				if (numberOfRemainingImages) {
+					api.forEach(elements, function(value, prop) {
+						api.setImage(elements[prop], settings);
+
+						if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
+							//api.addEvent('load', elements[prop], onComplete);
+							elements[prop].onload = onComplete;
+							if (elements[prop].readyState == 'complete') {
+								elements[prop].onload();
+							} else if (elements[prop].readyState) {
+								// Sometimes IE doesn't fire the readystatechange, even though the readystate has been changed to complete. AARRGHH!! I HATE IE, I HATE IT, I HATE IE!
+								elements[prop].src = elements[prop].src; // Do not ask me why this works, ask the IE team!
+							}
+							/*
+							 * End ugly working IE fix.
+							 */
+							else if (elements[prop].complete) {
+								elements[prop].onload();
+							}
+							else if (elements[prop].complete === undefined) {
+								var src = elements[prop].src;
+								// webkit hack from http://groups.google.com/group/jquery-dev/browse_thread/thread/eee6ab7b2da50e1f
+								// data uri bypasses webkit log warning (thx doug jones)
+								elements[prop].src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+								elements[prop].src = src;
+							}
+						} else {
+							numberOfRemainingImages--;
+							if (!numberOfRemainingImages) settings.onComplete();
+						}
+					});
+				}
+			}
+		}
+	  , reset : function reset (settings) {
+			api.currentBreakpoint = 0;
+			
+			var tmp = api.mergedElements;
+			api.forEach(api.mergedElements, function (value, prop) {
+				api.removeClass(api.mergedElements[prop], api.selector.substring(1));
+			});
+
+			srcBox.init(api.selector, settings);
+			api.forEach(tmp, function (value, prop) {
+				tmp[prop].className += api.selector.substring(1);
+			});
 		}
 	};
 
