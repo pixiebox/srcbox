@@ -7,11 +7,11 @@ SrcBox is a plugin for images to respond on the viewport-width and includes lazy
 * no jQuery needed
 
 ### Support
-* Documentation http://pixiebox.com/code/srcbox/docs
+* Documentation http://pixiebox.com/code/docs/srcbox
 * Submit an issue - https://github.com/pixiebox/srcbox/issues
 
 ### Download
 https://github.com/pixiebox/srcbox/
 
 ### Demo
-* http://pixiebox.com/code/srcbox/demo
+* http://pixiebox.com/code/demo/srcbox
