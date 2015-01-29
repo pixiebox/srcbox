@@ -253,18 +253,15 @@
 	  , setImage : function setImage(el, settings) {
 			if (el.nodeName === 'IMG') {
 				var elBreakpoint = api.getBreakpoint(settings.breakpoints, el.parentNode.offsetWidth)
-				  , elBreakpointVal = 'minDevicePixelRatio' in elBreakpoint
-						? elBreakpoint.maxWidth
-						: elBreakpoint.folder;
+				  , elBreakpointVal = elBreakpoint.folder;
+
 				api.setBreakpoint(el, elBreakpointVal);
 			}
 		}
 	  , setImages : function setImages (nodes, settings) {
 			viewPortWidth = api.getViewportWidthInCssPixels();
 			breakpoint = api.getBreakpoint(settings.breakpoints, viewPortWidth);
-			breakpointVal = 'minDevicePixelRatio' in breakpoint
-				? breakpoint.maxWidth
-				: breakpoint.folder;
+			breakpointVal = breakpoint.maxWidth || breakpoint.minWidth;
 
 			if (api.currentBreakpoint != breakpointVal) {
 				api.currentBreakpoint = breakpointVal;
