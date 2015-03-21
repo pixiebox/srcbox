@@ -152,7 +152,7 @@
 					el.removeAttribute('height'); // IE(9) fix
 				} else {
 					el.style.backgroundImage = 'url(' + src + ')';
-					el.style.backgroundPosition = 'center center';
+					el.style.backgroundPosition = '50% 50%';
 					el.style.backgroundRepeat = 'no-repeat';
 				}
 			}
