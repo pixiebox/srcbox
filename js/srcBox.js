@@ -9,7 +9,7 @@
 })(this, function (root) {
 	var api = {
 		mergedElements : []
-	  , selector : ''
+	  , selector : []
 	  , devicePixelRatio : function () {
 			return 'devicePixelRatio' in window
 				? window.devicePixelRatio
@@ -86,20 +86,24 @@
 			  , _breakpoint
 			  , maxWidth
 			  , minDpr
-			  , minWidth;
+			  , minWidth
+			  , hide;
 
 			while (_breakpoint = breakpoints[i]) {
 				minWidth = _breakpoint['minWidth'];
 				maxWidth = _breakpoint['maxWidth'];
 				minDpr   = 'minDevicePixelRatio' in _breakpoint ? _breakpoint['minDevicePixelRatio'] : 0;
+				hide   = 'hide' in _breakpoint;
 
 				// Viewport width found
 				if (vWidth > 0) {
 					if (minWidth && maxWidth  && vWidth >= minWidth && vWidth <= maxWidth ||
 						minWidth && !maxWidth && vWidth >= minWidth ||
 						maxWidth && !minWidth && vWidth <= maxWidth) {
+						
 						if (!minDpr || minDpr && api.devicePixelRatio() >= minDpr) {
 							breakpoint = _breakpoint;
+							if (maxWidth && hide) breakpoint.folder = 'hide';
 						}
 					}
 				// Viewport width not found so let's find the smallest image size
@@ -114,24 +118,43 @@
 			return breakpoint;
 		}
 	  , setBreakpoint : function setBreakpoint(el, breakpoint) {
+			if (breakpoint == 'hide') {
+				el.className = el.className + ' srcbox-hidden';
+
+				if (el.nodeName.toLowerCase() != 'img') {
+					el.style.backgroundImage = '';
+					el.style.backgroundPosition = '';
+					el.style.backgroundRepeat = '';
+				} 
+				return;
+			} else if (el.className.indexOf('srcbox-hidden') >= 0) {
+				el.className = el.className.replace( /(?:^|\s)srcbox-hidden(?!\S)/ , '' )
+			}
+
 			var dataBreakpoint = el.getAttribute('data-breakpoint')
 				, dataImg = el.getAttribute('data-img')
-				, isLazy
 				, src;
 
 			if (!dataBreakpoint || !dataImg) throw new Error('srcBox.js [function setBreakpoint]: The provided elements are missing a data-breakpoint or data-img attribute: <img data-breakpoint="/path/to/folder/{breakpoint}" data-img="some-img.jpg" />');
 
-			src = dataBreakpoint
-					.replace('{folder}', breakpoint)
-				+ el.getAttribute('data-img');
-			isLazy = new RegExp("(^|\\s)lag(\\s|$)").test(el.className);
+			src = (dataBreakpoint + dataImg)
+				.replace('{folder}', breakpoint);
 
-			if (isLazy) {
+			api.setSrc(el, src);
+		}
+	  , setSrc : function setSrc (el, src) {
+			if (new RegExp("(^|\\s)lag(\\s|$)").test(el.className)) {
 				el.setAttribute('data-lag-src', src);
 				api.lazyElems.push(el);
 			} else {
-				el.src = src;
-				el.removeAttribute('height'); // IE(9) fix
+				if (el.nodeName.toLowerCase() === 'img') {
+					el.src = src;
+					el.removeAttribute('height'); // IE(9) fix
+				} else {
+					el.style.backgroundImage = 'url(' + src + ')';
+					el.style.backgroundPosition = 'center center';
+					el.style.backgroundRepeat = 'no-repeat';
+				}
 			}
 		}
 	  , addEvent : function addEvent (evnt, el, func) {
@@ -251,23 +274,25 @@
 			};
 		}
 	  , setImage : function setImage(el, settings) {
-			if (el.nodeName === 'IMG') {
-				var elBreakpoint = api.getBreakpoint(settings.breakpoints, el.parentNode.offsetWidth)
-				  , elBreakpointVal = elBreakpoint.folder;
+			var offsetWidth = settings.parentOffset ? el.parentNode.offsetWidth : api.getViewportWidthInCssPixels();
+			var elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
+			  , elBreakpointVal = elBreakpoint.folder;
 
-				api.setBreakpoint(el, elBreakpointVal);
-			}
+			api.setBreakpoint(el, elBreakpointVal);
 		}
-	  , setImages : function setImages (nodes, settings) {
+	  , setImages : function setImages (nodes, selector) {
 			viewPortWidth = api.getViewportWidthInCssPixels();
-			breakpoint = api.getBreakpoint(settings.breakpoints, viewPortWidth);
+			breakpoint = api.getBreakpoint(srcBox.settings[selector].breakpoints, viewPortWidth);
 			breakpointVal = breakpoint.maxWidth || breakpoint.minWidth;
+			
 
 			if (api.currentBreakpoint != breakpointVal) {
-				api.currentBreakpoint = breakpointVal;
+				if (selector == api.selector.keys()[api.selector.length - 1]) {
+					api.currentBreakpoint = breakpointVal;
+				}
 
 				api.forEach(nodes, function(value, prop) {
-					api.setImage(nodes[prop], settings);
+					api.setImage(nodes[prop], srcBox.settings[selector]);
 				});
 
 				api.addEvent('scroll', window, api.setLazySrc);
@@ -277,13 +302,16 @@
 			return 'ontouchstart' in window;
 		}
 	  , orientationEvent : function () {
-			return supportsOrientationChange
+			return api.supportsOrientationChange()
 				? 'orientationchange'
 				: 'resize';
 		}
 	}
   , srcBox = {
-		init : function (selector, options) {
+		settings : []
+	  , init : function (selector, options) {
+			// reset on multiple calls on different querySelectors
+			api.currentBreakpoint = 0;
 			//
 			// ie8 Fix
 			//
@@ -325,6 +353,7 @@
 					  , {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
 					  , {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
 					]
+				  , parentOffset : true
 				}
 			  , settings = typeof options === 'object' && 'breakpoints' in options
 					? 'extend' in options && options.extend === true
@@ -335,36 +364,37 @@
 			  , onComplete = function onComplete () {
 					numberOfRemainingImages--;
 					if (!numberOfRemainingImages) {
-						settings.onComplete();
+						srcBox.settings[selector].onComplete();
 					}
-					//api.removeEvent('load', this, onComplete);
 				};
-			
+			srcBox.settings[selector] = settings;
 			//
 			// Initialize
 			//
-			api.selector = selector;
-			api.mergedElements = api.mergedElements.concat(elements);
-			api.setImages(elements, settings);
+			api.selector.push(selector);
+			api.mergedElements[selector] = elements;
+			api.setImages(elements, selector);
 			api.setLazySrc();
 
 			//
 			// Events
 			//
 			api.addEvent('scroll', window, api.setLazySrc);
-			api.addEvent(api.orientationEvent, window, api.debounce(function () {
-				api.setImages(api.mergedElements, settings);
+			api.addEvent(api.orientationEvent(), window, api.debounce(function () {
+				
+				api.forEach(api.selector, function (value, prop) {
+					api.setImages(api.mergedElements[api.selector[prop]], api.selector[prop]/*srcBox.settings[api.selector[prop]]*/);
+				});
 			}, 250));
 
-			if ('onComplete' in settings) {
+			if ('onComplete' in srcBox.settings[selector]) {
 				numberOfRemainingImages = elements.length;
 
 				if (numberOfRemainingImages) {
 					api.forEach(elements, function(value, prop) {
-						api.setImage(elements[prop], settings);
+						api.setImage(elements[prop], srcBox.settings[selector]);
 
 						if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
-							//api.addEvent('load', elements[prop], onComplete);
 							elements[prop].onload = onComplete;
 							if (elements[prop].readyState == 'complete') {
 								elements[prop].onload();
@@ -387,23 +417,24 @@
 							}
 						} else {
 							numberOfRemainingImages--;
-							if (!numberOfRemainingImages) settings.onComplete();
+							if (!numberOfRemainingImages) srcBox.settings[selector].onComplete();
 						}
 					});
 				}
 			}
 		}
-	  , reset : function reset (settings) {
+	  //, reset : function reset (settings) {
+	  , reset : function reset (selector) {
 			api.currentBreakpoint = 0;
 			
-			var tmp = api.mergedElements;
-			api.forEach(api.mergedElements, function (value, prop) {
-				api.removeClass(api.mergedElements[prop], api.selector.substring(1));
+			var tmp = api.mergedElements[selector];
+			api.forEach(api.mergedElements[selector], function (value, prop) {
+				api.removeClass(api.mergedElements[selector][prop], selector.substring(1));
 			});
 
-			srcBox.init(api.selector, settings);
+			srcBox.init(selector, srcBox.settings[selector]);
 			api.forEach(tmp, function (value, prop) {
-				tmp[prop].className += api.selector.substring(1);
+				tmp[prop].className += selector.substring(1);
 			});
 		}
 	};
