@@ -123,7 +123,6 @@
 
 				if (el.nodeName.toLowerCase() != 'img') {
 					el.style.backgroundImage = '';
-					el.style.backgroundPosition = '';
 					el.style.backgroundRepeat = '';
 				} 
 				return;
@@ -152,7 +151,6 @@
 					el.removeAttribute('height'); // IE(9) fix
 				} else {
 					el.style.backgroundImage = 'url(' + src + ')';
-					el.style.backgroundPosition = '50% 50%';
 					el.style.backgroundRepeat = 'no-repeat';
 				}
 			}
