@@ -7,9 +7,18 @@
         root.srcBox = factory(root);
     }
 })(this, function (root) {
+	Object.size = function(obj) {
+		var size = 0, key;
+		for (key in obj) {
+			if (obj.hasOwnProperty(key)) size++;
+		}
+		return size;
+	};
+
 	var api = {
 		mergedElements : []
-	  , selector : []
+	  //, selector : ''
+	  , selector : {}
 	  , devicePixelRatio : function () {
 			return 'devicePixelRatio' in window
 				? window.devicePixelRatio
@@ -127,13 +136,13 @@
 				} 
 				return;
 			} else if (el.className.indexOf('srcbox-hidden') >= 0) {
-				el.className = el.className.replace( /(?:^|\s)srcbox-hidden(?!\S)/ , '' )
+				el.className = el.className.replace( /(?:^|\s)srcbox-hidden(?!\S)/g , '' )
 			}
 
 			var dataBreakpoint = el.getAttribute('data-breakpoint')
 				, dataImg = el.getAttribute('data-img')
 				, src;
-
+			
 			if (!dataBreakpoint || !dataImg) throw new Error('srcBox.js [function setBreakpoint]: The provided elements are missing a data-breakpoint or data-img attribute: <img data-breakpoint="/path/to/folder/{breakpoint}" data-img="some-img.jpg" />');
 
 			src = (dataBreakpoint + dataImg)
@@ -285,7 +294,7 @@
 			
 
 			if (api.currentBreakpoint != breakpointVal) {
-				if (selector == api.selector.keys()[api.selector.length - 1]) {
+				if (selector == api.selector[Object.size(api.selector) - 1]) {
 					api.currentBreakpoint = breakpointVal;
 				}
 
@@ -369,7 +378,7 @@
 			//
 			// Initialize
 			//
-			api.selector.push(selector);
+			api.selector[Object.size(api.selector)] = selector;
 			api.mergedElements[selector] = elements;
 			api.setImages(elements, selector);
 			api.setLazySrc();
