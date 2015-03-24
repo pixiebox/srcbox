@@ -17,7 +17,6 @@
 
 	var api = {
 		mergedElements : []
-	  //, selector : ''
 	  , selector : {}
 	  , devicePixelRatio : function () {
 			return 'devicePixelRatio' in window
@@ -430,7 +429,6 @@
 				}
 			}
 		}
-	  //, reset : function reset (settings) {
 	  , reset : function reset (selector) {
 			api.currentBreakpoint = 0;
 			
