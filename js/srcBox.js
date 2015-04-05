@@ -7,6 +7,9 @@
         root.srcBox = factory(root);
     }
 })(this, function (root) {
+	//
+	// Object variant for array.length
+	//
 	Object.size = function(obj) {
 		var size = 0, key;
 		for (key in obj) {
@@ -15,36 +18,62 @@
 		return size;
 	};
 
+	//
+	// Variables
+	//
 	var api = {
-		mergedElements : []
-	  , selector : {}
-	  , devicePixelRatio : function () {
-			return 'devicePixelRatio' in window
-				? window.devicePixelRatio
-				: 1
-		}
-	  , lazyElems : []
-	  , breakpoint : 0
-	  , currentBreakpoint : 0
+	    breakpoint : 0
 	  , breakpointVal : 0
+	  , currentBreakpoint : 0
+	  , lazyElems : []
+	  , mergedElements : []
+	  , selector : {}
 	  , viewPortWidth : 0
 	  //
 	  // Methods
 	  //
-	  , forEach : function (collection, callback, scope) {
-			if (Object.prototype.toString.call(collection) === '[object Object]') {
-				for (var prop in collection) {
-					if (Object.prototype.hasOwnProperty.call(collection, prop)) {
-						callback.call(scope, collection[prop], prop, collection);
-					}
-				}
-			} else {
-				for (var i = 0, len = collection.length; i < len; i++) {
-					callback.call(scope, collection[i], i, collection);
-				}
+	  , abovethetop : function abovethetop (element) {
+			return api.scrollPos()[0] >= api.offset(element, 'top') + element.height;
+		}
+	  , addEvent : function addEvent (evnt, el, func) {
+			if (el.addEventListener) { // W3C DOM
+				el.addEventListener(evnt,func,false);
+			} else if (el.attachEvent) { // IE DOM
+				el.attachEvent('on' + evnt, func);
+			} else { // No much to do
+				el[evnt] = func;
 			}
 		}
-	  , extend : function ( defaults, options ) {
+	  , belowthefold : function belowthefold (element) {
+			var fold = (window.innerHeight
+					? window.innerHeight
+					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
+				) + api.scrollPos()[0];
+
+			return fold <= api.offset(element, 'top');
+		}
+		// underscore debounce function
+	  , debounce : function debounce (func, wait, immediate) {
+			var timeout;
+			return function() {
+				var context = this, args = arguments
+				  , later = function() {
+						timeout = null;
+						if (!immediate) func.apply(context, args);
+					}
+				  , callNow = immediate && !timeout;
+
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+				if (callNow) func.apply(context, args);
+			};
+		}
+	  , devicePixelRatio : function devicePixelRatio () {
+			return 'devicePixelRatio' in window
+				? window.devicePixelRatio
+				: 1
+		}
+	  , extend : function extend (defaults, options) {
 			var extended = {};
 
 			api.forEach(defaults, function (value, prop) {
@@ -57,37 +86,20 @@
 
 			return extended;
 		}
-	  , getViewportWidthInCssPixels : function getViewportWidthInCssPixels() {
-			var math = Math
-			  , widths = [
-					window.innerWidth
-				  , window.document.documentElement.clientWidth
-				  , window.document.documentElement.offsetWidth
-				  , window.document.body.clientWidth]
-			  , i = 0
-			  , width
-			  , screenWidth = window.screen.width;
-
-			for (; i < widths.length; i++) {
-				// If not a number remove it
-				if (isNaN(widths[i])) {
-					widths.splice(i, 1);
-					i--;
+	  , forEach : function forEach (collection, callback, scope) {
+			if (Object.prototype.toString.call(collection) === '[object Object]') {
+				for (var prop in collection) {
+					if (Object.prototype.hasOwnProperty.call(collection, prop)) {
+						callback.call(scope, collection[prop], prop, collection);
+					}
+				}
+			} else {
+				for (var i = 0, len = collection.length; i < len; i++) {
+					callback.call(scope, collection[i], i, collection);
 				}
 			}
-
-			if (widths.length) {
-				width = math.max.apply(math, widths);
-
-				// Catch cases where the viewport is wider than the screen
-				if (!isNaN(screenWidth)) {
-					width = math.min(screenWidth, width);
-				}
-			}
-
-			return width || screenWidth || 0;
 		}
-	  , getBreakpoint : function getBreakpoint(breakpoints, vWidth) {
+	  , getBreakpoint : function getBreakpoint (breakpoints, vWidth) {
 			var _vWidth = vWidth
 			  , i = 0
 			  , breakpoint = {}
@@ -125,7 +137,108 @@
 
 			return breakpoint;
 		}
-	  , setBreakpoint : function setBreakpoint(el, breakpoint) {
+	  , getViewportWidthInCssPixels : function getViewportWidthInCssPixels () {
+			var math = Math
+			  , widths = [
+					window.innerWidth
+				  , window.document.documentElement.clientWidth
+				  , window.document.documentElement.offsetWidth
+				  , window.document.body.clientWidth]
+			  , i = 0
+			  , width
+			  , screenWidth = window.screen.width;
+
+			for (; i < widths.length; i++) {
+				// If not a number remove it
+				if (isNaN(widths[i])) {
+					widths.splice(i, 1);
+					i--;
+				}
+			}
+
+			if (widths.length) {
+				width = math.max.apply(math, widths);
+
+				// Catch cases where the viewport is wider than the screen
+				if (!isNaN(screenWidth)) {
+					width = math.min(screenWidth, width);
+				}
+			}
+
+			return width || screenWidth || 0;
+		}
+	  , inviewport : function inviewport (element) {
+			return !api.rightoffold(element) && !api.leftofbegin(element) &&
+				!api.belowthefold(element) && !api.abovethetop(element);
+		}
+	  , leftofbegin : function leftofbegin (element) {
+			return api.scrollPos()[1] >= api.offset(element, 'left') + element.width;
+		}
+	  , offset : function offset (rect, position) {
+			rect = rect.getBoundingClientRect();
+
+			switch (position) {
+				case 'left':
+					return rect.left; // x position of rect relative to viewport
+				case 'top':
+					return rect.top; // y position of rect relative to viewport
+				default:
+					return 0;
+			}
+			/*
+			rect.left // x position of element relative to viewport
+			rect.top // y position of element relative to viewport
+			rect.width // width of element, including padding and borders
+			rect.height // height of element, including padding and borders
+			rect.offsetWidth // width of element - IE8 and below
+			rect.offsetHeight // height of element - IE8 and below
+			*/
+		}
+	  , orientationEvent : function orientationEvent () {
+			return api.supportsOrientationChange()
+				? 'orientationchange'
+				: 'resize';
+		}
+	  , removeClass : function removeClass (el, remove) {
+			var newClassName = ''
+			  , i
+			  , classes = el.className.split(' ');
+
+			for(i = 0; i < classes.length; i++) {
+				if (classes[i] !== remove) {
+					newClassName += classes[i] +  ' ';
+				}
+			}
+			el.className = newClassName;
+		}
+	  , removeEvent : function removeEvent (evnt, el, func) {
+			if (el.removeEventListener) { // W3C DOM
+				el.removeEventListener(evnt,func,false);
+			} else if (el.detachEvent) { // IE DOM
+				el.detachEvent('on' + evnt, func);
+			} else { // No much to do
+				el.splice(evnt, 1);
+			}
+		}
+	  , rightoffold : function rightoffold (element) {
+			var fold = (window.innerWidth
+					? window.innerWidth
+					: Math.max(document.documentElement.clientWidth, document.body.clientWidth)
+				) + api.scrollPos()[1];
+
+			return fold <= api.offset(element, 'left');
+		}
+	  , scrollPos : function scrollPos () {
+			var scrollTop = (window.pageYOffset !== undefined)
+				? window.pageYOffset
+				: (document.documentElement || document.body.parentNode || document.body).scrollTop
+			  , scrollLeft = (window.pageXOffset !== undefined)
+					? window.pageXOffset
+					: (document.documentElement || document.body.parentNode || document.body).scrollLeft;
+
+			return [scrollTop, scrollLeft];
+		}
+	  , setBreakpoint : function setBreakpoint (el, breakpoint) {
 			if (breakpoint == 'hide') {
 				el.className = el.className + ' srcbox-hidden';
 
@@ -149,137 +262,7 @@
 
 			api.setSrc(el, src);
 		}
-	  , setSrc : function setSrc (el, src) {
-			if (new RegExp("(^|\\s)lag(\\s|$)").test(el.className)) {
-				el.setAttribute('data-lag-src', src);
-				api.lazyElems.push(el);
-			} else {
-				if (el.nodeName.toLowerCase() === 'img') {
-					el.src = src;
-					el.removeAttribute('height'); // IE(9) fix
-				} else {
-					el.style.backgroundImage = 'url(' + src + ')';
-					el.style.backgroundRepeat = 'no-repeat';
-				}
-			}
-		}
-	  , addEvent : function addEvent (evnt, el, func) {
-			if (el.addEventListener) { // W3C DOM
-				el.addEventListener(evnt,func,false);
-			} else if (el.attachEvent) { // IE DOM
-				el.attachEvent('on' + evnt, func);
-			} else { // No much to do
-				el[evnt] = func;
-			}
-		}
-	  , removeEvent : function removeEvent (evnt, el, func) {
-			if (el.removeEventListener) { // W3C DOM
-				el.removeEventListener(evnt,func,false);
-			} else if (el.detachEvent) { // IE DOM
-				el.detachEvent('on' + evnt, func);
-			} else { // No much to do
-				el.splice(evnt, 1);
-			}
-		}
-	  , removeClass : function removeClass(el, remove) {
-			var newClassName = ''
-			  , i
-			  , classes = el.className.split(' ');
-
-			for(i = 0; i < classes.length; i++) {
-				if (classes[i] !== remove) {
-					newClassName += classes[i] +  ' ';
-				}
-			}
-			el.className = newClassName;
-		}
-	  , scrollPos : function scrollPos () {
-			var scrollTop = (window.pageYOffset !== undefined)
-				? window.pageYOffset
-				: (document.documentElement || document.body.parentNode || document.body).scrollTop
-			  , scrollLeft = (window.pageXOffset !== undefined)
-					? window.pageXOffset
-					: (document.documentElement || document.body.parentNode || document.body).scrollLeft;
-
-			return [scrollTop, scrollLeft];
-		}
-	  , offset : function offset (rect, position) {
-			rect = rect.getBoundingClientRect();
-
-			switch (position) {
-				case 'left':
-					return rect.left; // x position of rect relative to viewport
-				case 'top':
-					return rect.top; // y position of rect relative to viewport
-				default:
-					return 0;
-			}
-			/*
-			rect.left // x position of element relative to viewport
-			rect.top // y position of element relative to viewport
-			rect.width // width of element, including padding and borders
-			rect.height // height of element, including padding and borders
-			rect.offsetWidth // width of element - IE8 and below
-			rect.offsetHeight // height of element - IE8 and below
-			*/
-		}
-	  , belowthefold : function belowthefold (element) {
-			var fold = (window.innerHeight
-					? window.innerHeight
-					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
-				) + api.scrollPos()[0];
-
-			return fold <= api.offset(element, 'top');
-		}
-	  , rightoffold : function rightoffold (element) {
-			var fold = (window.innerWidth
-					? window.innerWidth
-					: Math.max(document.documentElement.clientWidth, document.body.clientWidth)
-				) + api.scrollPos()[1];
-
-			return fold <= api.offset(element, 'left');
-		}
-	  , abovethetop : function abovethetop (element) {
-			return api.scrollPos()[0] >= api.offset(element, 'top') + element.height;
-		}
-	  , leftofbegin : function leftofbegin (element) {
-			return api.scrollPos()[1] >= api.offset(element, 'left') + element.width;
-		}
-	  , inviewport : function inviewport (element) {
-			return !api.rightoffold(element) && !api.leftofbegin(element) &&
-				!api.belowthefold(element) && !api.abovethetop(element);
-		}
-	  , setLazySrc : function setLazySrc () {
-			var lazyElemsLength = api.lazyElems.length;
-
-			while (lazyElemsLength--) {
-				if (api.inviewport(api.lazyElems[lazyElemsLength])) {
-					api.lazyElems[lazyElemsLength].src = api.lazyElems[lazyElemsLength].getAttribute('data-lag-src');
-					api.lazyElems[lazyElemsLength].removeAttribute('height'); // IE(9) fix
-					api.lazyElems.splice(lazyElemsLength, 1);
-				}
-			}
-			if (!api.lazyElems.length) {
-				api.removeEvent('scroll', window, api.setLazySrc);
-			}
-		}
-		// underscore debounce function
-	  , debounce : function debounce(func, wait, immediate) {
-			var timeout;
-			return function() {
-				var context = this, args = arguments
-				  , later = function() {
-						timeout = null;
-						if (!immediate) func.apply(context, args);
-					}
-				  , callNow = immediate && !timeout;
-
-				clearTimeout(timeout);
-				timeout = setTimeout(later, wait);
-				if (callNow) func.apply(context, args);
-			};
-		}
-	  , setImage : function setImage(el, settings) {
+	  , setImage : function setImage (el, settings) {
 			var offsetWidth = settings.parentOffset ? el.parentNode.offsetWidth : api.getViewportWidthInCssPixels();
 			var elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
 			  , elBreakpointVal = elBreakpoint.folder;
@@ -304,23 +287,51 @@
 				api.addEvent('scroll', window, api.setLazySrc);
 			}
 		}
-	  , supportsOrientationChange : function () {
-			return 'ontouchstart' in window;
+	  , setLazySrc : function setLazySrc () {
+			var lazyElemsLength = api.lazyElems.length;
+
+			while (lazyElemsLength--) {
+				if (api.inviewport(api.lazyElems[lazyElemsLength])) {
+					api.lazyElems[lazyElemsLength].src = api.lazyElems[lazyElemsLength].getAttribute('data-lag-src');
+					api.lazyElems[lazyElemsLength].removeAttribute('height'); // IE(9) fix
+					api.lazyElems.splice(lazyElemsLength, 1);
+				}
+			}
+			if (!api.lazyElems.length) {
+				api.removeEvent('scroll', window, api.setLazySrc);
+			}
 		}
-	  , orientationEvent : function () {
-			return api.supportsOrientationChange()
-				? 'orientationchange'
-				: 'resize';
+	  , setSrc : function setSrc (el, src) {
+			if (new RegExp("(^|\\s)lag(\\s|$)").test(el.className)) {
+				el.setAttribute('data-lag-src', src);
+				api.lazyElems.push(el);
+			} else {
+				if (el.nodeName.toLowerCase() === 'img') {
+					el.src = src;
+					el.removeAttribute('height'); // IE(9) fix
+				} else {
+					el.style.backgroundImage = 'url(' + src + ')';
+					el.style.backgroundRepeat = 'no-repeat';
+				}
+			}
+		}
+	  , supportsOrientationChange : function supportsOrientationChange () {
+			return 'ontouchstart' in window;
 		}
 	}
   , srcBox = {
+		//
+		// Variables
+		//
 		settings : []
+		//
+		// Methods
+		//
 	  , init : function (selector, options) {
 			// reset on multiple calls on different querySelectors
 			api.currentBreakpoint = 0;
-			//
+
 			// ie8 Fix
-			//
 			if (document.all && !document.addEventListener) {
 				var _slice = Array.prototype.slice;
 				Array.prototype.slice = function() {
@@ -431,7 +442,8 @@
 		}
 	  , reset : function reset (selector) {
 			api.currentBreakpoint = 0;
-			
+
+			// only init srcBox for new elements, temporary remove the class name
 			var tmp = api.mergedElements[selector];
 			api.forEach(api.mergedElements[selector], function (value, prop) {
 				api.removeClass(api.mergedElements[selector][prop], selector.substring(1));
