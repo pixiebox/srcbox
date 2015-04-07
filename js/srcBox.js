@@ -263,8 +263,13 @@
 			api.setSrc(el, src);
 		}
 	  , setImage : function setImage (el, settings) {
-			var offsetWidth = settings.parentOffset ? el.parentNode.offsetWidth : api.getViewportWidthInCssPixels();
-			var elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
+			var dataOffsetWidth = el.getAttribute('data-breakpointwidth') 
+			  , offsetWidth = dataOffsetWidth !== null
+					? dataOffsetWidth
+					: settings.parentOffset
+						? el.parentNode.offsetWidth
+						: api.getViewportWidthInCssPixels()
+			  , elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
 			  , elBreakpointVal = elBreakpoint.folder;
 
 			api.setBreakpoint(el, elBreakpointVal);
