@@ -174,14 +174,16 @@
 	  , leftofbegin : function leftofbegin (element) {
 			return api.scrollPos()[1] >= api.offset(element, 'left') + element.width;
 		}
-	  , offset : function offset (rect, position) {
-			rect = rect.getBoundingClientRect();
+	  , offset : function offset (el, position) {
+			var rect = el.getBoundingClientRect();
 
 			switch (position) {
 				case 'left':
 					return rect.left; // x position of rect relative to viewport
 				case 'top':
-					return rect.top; // y position of rect relative to viewport
+					return rect.top
+						+ ( window.pageYOffset || (document.documentElement || document.body.parentNode || document.body).scrollTop )
+						- ( el.ownerDocument.clientTop  || 0 ); // y position of rect relative to viewport
 				default:
 					return 0;
 			}
