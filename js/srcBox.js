@@ -32,9 +32,6 @@
 	  //
 	  // Methods
 	  //
-	  , abovethetop : function abovethetop (element) {
-			return api.scrollPos()[0] >= api.offset(element, 'top') + element.height;
-		}
 	  , addEvent : function addEvent (evnt, el, func) {
 			if (el.addEventListener) { // W3C DOM
 				el.addEventListener(evnt,func,false);
@@ -43,14 +40,6 @@
 			} else { // No much to do
 				el[evnt] = func;
 			}
-		}
-	  , belowthefold : function belowthefold (element) {
-			var fold = (window.innerHeight
-					? window.innerHeight
-					: Math.max(document.documentElement.clientHeight, document.body.clientHeight)
-				) + api.scrollPos()[0];
-
-			return fold <= api.offset(element, 'top');
 		}
 		// underscore debounce function
 	  , debounce : function debounce (func, wait, immediate) {
@@ -168,33 +157,15 @@
 			return width || screenWidth || 0;
 		}
 	  , inviewport : function inviewport (element) {
-			return !api.rightoffold(element) && !api.leftofbegin(element) &&
-				!api.belowthefold(element) && !api.abovethetop(element);
-		}
-	  , leftofbegin : function leftofbegin (element) {
-			return api.scrollPos()[1] >= api.offset(element, 'left') + element.width;
-		}
-	  , offset : function offset (el, position) {
-			var rect = el.getBoundingClientRect();
+			var rect = element.getBoundingClientRect();
+			var html = document.documentElement;
 
-			switch (position) {
-				case 'left':
-					return rect.left; // x position of rect relative to viewport
-				case 'top':
-					return rect.top
-						+ ( window.pageYOffset || (document.documentElement || document.body.parentNode || document.body).scrollTop )
-						- ( el.ownerDocument.clientTop  || 0 ); // y position of rect relative to viewport
-				default:
-					return 0;
-			}
-			/*
-			rect.left // x position of element relative to viewport
-			rect.top // y position of element relative to viewport
-			rect.width // width of element, including padding and borders
-			rect.height // height of element, including padding and borders
-			rect.offsetWidth // width of element - IE8 and below
-			rect.offsetHeight // height of element - IE8 and below
-			*/
+			return (
+				rect.top >= 0 &&
+				rect.left >= 0 &&
+				rect.bottom <= (window.innerHeight || html.clientHeight) &&
+				rect.right <= (window.innerWidth || html.clientWidth)
+			);
 		}
 	  , orientationEvent : function orientationEvent () {
 			return api.supportsOrientationChange()
@@ -221,24 +192,6 @@
 			} else { // No much to do
 				el.splice(evnt, 1);
 			}
-		}
-	  , rightoffold : function rightoffold (element) {
-			var fold = (window.innerWidth
-					? window.innerWidth
-					: Math.max(document.documentElement.clientWidth, document.body.clientWidth)
-				) + api.scrollPos()[1];
-
-			return fold <= api.offset(element, 'left');
-		}
-	  , scrollPos : function scrollPos () {
-			var scrollTop = (window.pageYOffset !== undefined)
-				? window.pageYOffset
-				: (document.documentElement || document.body.parentNode || document.body).scrollTop
-			  , scrollLeft = (window.pageXOffset !== undefined)
-					? window.pageXOffset
-					: (document.documentElement || document.body.parentNode || document.body).scrollLeft;
-
-			return [scrollTop, scrollLeft];
 		}
 	  , setBreakpoint : function setBreakpoint (el, breakpoint) {
 			if (breakpoint == 'hide') {
