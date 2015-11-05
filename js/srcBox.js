@@ -303,7 +303,7 @@
 		//
 		// Methods
 		//
-	  , init : function (selector, options) {
+	  , init : function (selector, options, context) {
 				// reset on multiple calls on different querySelectors
 				api.currentBreakpoint = 0;
 
@@ -329,7 +329,8 @@
 				//
 				// Variables
 				//
-				var elements = Array.prototype.slice.call(document.querySelectorAll(selector))
+				var context = context || document // todo context documentation
+          , elements = Array.prototype.slice.call(context.querySelectorAll(selector))
 					// Default settings
 					, defaults = {
 							breakpoints: [
