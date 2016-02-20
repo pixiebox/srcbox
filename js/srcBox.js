@@ -260,7 +260,6 @@
 
 					api.addEvent('scroll', window, api.setLazySrc);
 				}
-
 			}
 	  , setLazySrc : function setLazySrc () {
 				var lazyElemsLength = api.lazyElems.length;
@@ -271,10 +270,6 @@
 						api.lazyElems[lazyElemsLength].removeAttribute('height'); // IE(9) fix
 						api.lazyElems.splice(lazyElemsLength, 1);
 					}
-				}
-
-				if (!api.lazyElems.length) {
-					api.removeEvent('scroll', window, api.setLazySrc);
 				}
 			}
 	  , setSrc : function setSrc (el, src) {
@@ -329,8 +324,8 @@
 				//
 				// Variables
 				//
-				var context = context || document // todo context documentation
-          , elements = Array.prototype.slice.call(context.querySelectorAll(selector))
+				var context = context || document
+          , imgCollection = Array.prototype.slice.call(context.querySelectorAll(selector))
 					// Default settings
 					, defaults = {
 							breakpoints: [
@@ -347,7 +342,8 @@
 								, {folder: '2048', minWidth: 414, maxWidth: 736, minDevicePixelRatio: 3} // iPhone 6 PLUS Retina display
 								, {folder: '2048', minWidth: 748, maxWidth: 1024, minDevicePixelRatio: 2} // tablet Retina display
 							]
-							, parentOffset : true
+            , debug : false
+            , parentOffset : true
 					}
 					, settings = typeof options === 'object' && 'breakpoints' in options
 							? 'extend' in options && options.extend === true
@@ -372,52 +368,57 @@
 				// Initialize
 				//
 				api.selector[Object.size(api.selector)] = selector;
-				api.mergedElements[selector] = elements;
-				api.setImages(elements, selector);
+				api.mergedElements[selector] = imgCollection;
+				api.setImages(imgCollection, selector);
 				api.setLazySrc();
 
 				//
 				// Events
 				//
-				api.addEvent('scroll', window, api.setLazySrc);
-				api.addEvent(api.orientationEvent(), window, api.debounce(function () {
-					api.forEach(api.selector, function (value, prop) {
-						api.setImages(api.mergedElements[api.selector[prop]], api.selector[prop]);
-					});
-				}, 250));
+        if (api.lazyElems.length) {
+          api.addEvent('scroll', window, api.setLazySrc);
+        }
+
+        if (srcBox.settings[selector].debug) {
+          api.addEvent(api.orientationEvent(), window, api.debounce(function () {
+            api.forEach(api.selector, function (value, prop) {
+              api.setImages(api.mergedElements[api.selector[prop]], api.selector[prop]);
+            });
+          }, 250));
+        }
 
 				if ('onComplete' in srcBox.settings[selector]) {
-					numberOfRemainingImages = elements.length;
+					numberOfRemainingImages = imgCollection.length;
 
 					if (numberOfRemainingImages) {
-						api.forEach(elements, function(value, prop) {
-							if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(elements[prop].className)) {
-								elements[prop].onload = onComplete;
-								if (elements[prop].readyState == 'complete') {
-									elements[prop].onload();
-								} else if (elements[prop].readyState) {
+						api.forEach(imgCollection, function(value, prop) {
+							if (!new RegExp('[\w\s]*(lag)+[\w\s]*').test(imgCollection[prop].className)) {
+								imgCollection[prop].onload = onComplete;
+								if (imgCollection[prop].readyState == 'complete') {
+									imgCollection[prop].onload();
+								} else if (imgCollection[prop].readyState) {
 									// Sometimes IE doesn't fire the readystatechange, even though the readystate has been changed to complete. AARRGHH!! I HATE IE, I HATE IT, I HATE IE!
-									elements[prop].src = elements[prop].src; // Do not ask me why this works, ask the IE team!
+									imgCollection[prop].src = imgCollection[prop].src; // Do not ask me why this works, ask the IE team!
 								}
 								/*
 								 * End ugly working IE fix.
 								 */
-								else if (elements[prop].complete) {
-									elements[prop].onload();
+								else if (imgCollection[prop].complete) {
+									imgCollection[prop].onload();
 								}
-								else if (elements[prop].complete === undefined) {
-									var src = elements[prop].src;
+								else if (imgCollection[prop].complete === undefined) {
+									var src = imgCollection[prop].src;
 									// webkit hack from http://groups.google.com/group/jquery-dev/browse_thread/thread/eee6ab7b2da50e1f
 									// data uri bypasses webkit log warning (thx doug jones)
-									elements[prop].src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
-									elements[prop].src = src;
+									imgCollection[prop].src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+									imgCollection[prop].src = src;
 								}
 							} else {
 								numberOfRemainingImages--;
 								if (!numberOfRemainingImages) srcBox.settings[selector].onComplete();
 							}
 
-							api.setImage(elements[prop], srcBox.settings[selector]);
+							api.setImage(imgCollection[prop], srcBox.settings[selector]);
 						});
 					}
 				}
