@@ -126,14 +126,35 @@
 
 				return breakpoint;
 			}
-	  , getViewport : function getViewport () {
-				var e = window, a = 'inner';
+	  , getViewportWidthInCssPixels : function getViewportWidthInCssPixels () {
+				var math = Math
+					, widths = [
+						window.innerWidth
+						, window.document.documentElement.clientWidth
+						, window.document.documentElement.offsetWidth
+						, window.document.body.clientWidth]
+					, i = 0
+					, width
+					, screenWidth = window.screen.width;
 
-        if (!('innerWidth' in window )) {
-          a = 'client';
-          e = document.documentElement || document.body;
-        }
-        return { width : e[ a+'Width' ] , height : e[ a+'Height' ] };
+				for (; i < widths.length; i++) {
+					// If not a number remove it
+					if (isNaN(widths[i])) {
+						widths.splice(i, 1);
+						i--;
+					}
+				}
+
+				if (widths.length) {
+					width = math.max.apply(math, widths);
+
+					// Catch cases where the viewport is wider than the screen
+					if (!isNaN(screenWidth)) {
+						width = math.min(screenWidth, width);
+					}
+				}
+
+				return width || screenWidth || 0;
 			}
 	  , inviewport : function inviewport (element) {
 				var rect = element.getBoundingClientRect();
@@ -210,7 +231,7 @@
 						? dataOffsetWidth
 						: settings.parentOffset
 							? el.parentNode.offsetWidth
-							: api.getViewport().width
+							: api.getViewportWidthInCssPixels()
 					, elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
 					, elBreakpointVal;
 
@@ -221,7 +242,7 @@
 				api.setBreakpoint(el, elBreakpointVal);
 			}
 	  , setImages : function setImages (nodes, selector) {
-				viewPortWidth = api.getViewport().width;
+				viewPortWidth = api.getViewportWidthInCssPixels();
 				breakpoint = api.getBreakpoint(srcBox.settings[selector].breakpoints, viewPortWidth);
 
 				breakpointVal = !api.isEmpty(breakpoint)
@@ -304,7 +325,8 @@
 				// Variables
 				//
 				var context = context || document
-          , imgCollection = Array.prototype.slice.call(context.querySelectorAll(selector))
+          , options = options || []
+          , imgCollection = Array.prototype.slice.call(context.querySelectorAll(selector)) || []
 					// Default settings
 					, defaults = {
 							breakpoints: [
