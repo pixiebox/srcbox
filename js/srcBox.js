@@ -282,7 +282,6 @@
 						el.removeAttribute('height'); // IE(9) fix
 					} else {
 						el.style.backgroundImage = 'url(' + src + ')';
-						el.style.backgroundRepeat = 'no-repeat';
 					}
 				}
 			}
