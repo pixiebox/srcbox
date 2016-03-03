@@ -126,35 +126,15 @@
 
 				return breakpoint;
 			}
-	  , getViewportWidthInCssPixels : function getViewportWidthInCssPixels () {
-				var math = Math
-					, widths = [
-						window.innerWidth
-						, window.document.documentElement.clientWidth
-						, window.document.documentElement.offsetWidth
-						, window.document.body.clientWidth]
-					, i = 0
-					, width
-					, screenWidth = window.screen.width;
+	  , getViewport : function getViewport () {
+				var el = window
+          , attr = 'inner';
 
-				for (; i < widths.length; i++) {
-					// If not a number remove it
-					if (isNaN(widths[i])) {
-						widths.splice(i, 1);
-						i--;
-					}
-				}
-
-				if (widths.length) {
-					width = math.max.apply(math, widths);
-
-					// Catch cases where the viewport is wider than the screen
-					if (!isNaN(screenWidth)) {
-						width = math.min(screenWidth, width);
-					}
-				}
-
-				return width || screenWidth || 0;
+        if (!('innerWidth' in window )) {
+          attr = 'client';
+          el = document.documentElement || document.body;
+        }
+        return {width : el[attr + 'Width'] , height : el[attr + 'Height']};
 			}
 	  , inviewport : function inviewport (element) {
 				var rect = element.getBoundingClientRect();
@@ -226,12 +206,9 @@
 				api.setSrc(el, src);
 			}
 	  , setImage : function setImage (el, settings) {
-				var dataOffsetWidth = el.getAttribute('data-breakpointwidth') // todo documentation
-					, offsetWidth = dataOffsetWidth !== null
-						? dataOffsetWidth
-						: settings.parentOffset
+				var offsetWidth = el.getAttribute('data-breakpointwidth') || (settings.parentOffset
 							? el.parentNode.offsetWidth
-							: api.getViewportWidthInCssPixels()
+							: api.getViewport().width)
 					, elBreakpoint = api.getBreakpoint(settings.breakpoints, offsetWidth)
 					, elBreakpointVal;
 
@@ -242,7 +219,7 @@
 				api.setBreakpoint(el, elBreakpointVal);
 			}
 	  , setImages : function setImages (nodes, selector) {
-				viewPortWidth = api.getViewportWidthInCssPixels();
+				viewPortWidth = api.getViewport().width;
 				breakpoint = api.getBreakpoint(srcBox.settings[selector].breakpoints, viewPortWidth);
 
 				breakpointVal = !api.isEmpty(breakpoint)
